@@ -4,7 +4,7 @@
 - **Estudante:** Pedro Favoreto Alves
 - **Turma:** 2A
 - **Chave Única:** `T26-2A-1513-5257-98B9-DA0F`
-- **URL_CLOUDFLARE:** `https://t26-2a-1513-5257-98b9-da0f.pages.dev` *(Atualize com a URL pública real do seu deploy na Cloudflare antes de abrir o Pull Request)*
+- **URL_CLOUDFLARE:** `https://avalia2026-2-bet.pages.dev/` *(Atualize com a URL pública real do seu deploy na Cloudflare antes de abrir o Pull Request)*
 
 ---
 
