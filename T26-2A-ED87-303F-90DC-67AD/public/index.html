@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projeto #0 — T26-2A-ED87-303F-90DC-67AD</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <strong>Projeto #0: Projeto 0 (Teste de Ambiente e Entrega — Sem Nota): Painel de Diagnóstico Cloudflare + D1 + Discord</strong>
+      </div>
+      <div class="discord-badge" id="discordProfile">
+        <a id="discordLoginLink" href="/api/auth/discord" style="color:inherit;text-decoration:none;">
+          <span id="discordUserText">Entrar com Discord OAuth2</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <span class="pill">Projeto 0 · Teste de Entrega (Sem Nota)</span>
+      <h1>Projeto 0 (Teste de Ambiente e Entrega — Sem Nota): Painel de Diagnóstico Cloudflare + D1 + Discord</h1>
+      <p class="desc">Projeto universal de treinamento (sem sorteio e sem nota) que todos os estudantes realizam igualmente para validar o ambiente Node.js instalado em modo usuário via Scoop nos computadores da instituição, o deploy de subpasta no Cloudflare Pages com banco de dados Cloudflare D1 e o fluxo completo de entrega e avaliação automatizada via Pull Request no repositório frankalcantara/Avalia2026-2. A aplicação consiste em um Painel de Check-in e Diagnóstico de Entrega construído em HTML5, CSS3 e JavaScript puro (Vanilla JS): a interface exibe o status da autenticação OAuth2 do Discord, consulta uma Cloudflare Pages Function (/api/status) conectada a uma tabela de diagnósticos no banco Cloudflare D1 e permite registrar um ping de verificação contendo a Chave de Teste (T26-...) do estudante. O pacote da subpasta também exercita os 3 agentes obrigatórios (incluindo o agente de teste e validação), o documento AGENTS.md descrevendo o harness, a pasta skills/ e a licença MIT.</p>
+
+      <div class="form-row">
+        <input class="input-text" id="recordInput" type="text" placeholder="Digite um registro para gravar na Cloudflare Function + D1...">
+        <button class="btn-primary" id="sendBtn" type="button">Registrar no Cloudflare D1</button>
+      </div>
+      <div id="statusMessage" style="font-size:0.88rem;font-weight:700;color:#166534;margin-bottom:0.75rem;"></div>
+    </section>
+
+    <section class="card">
+      <h2 style="font-size:1.15rem;font-weight:800;margin-bottom:0.85rem;">Registros Persistidos (Cloudflare Pages Functions + D1)</h2>
+      <ul class="records-list" id="recordsList">
+        <li>Carregando status da API serverless...</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer id="projectFooter">
+    Chave Única de Auditoria: <code>T26-2A-ED87-303F-90DC-67AD</code> · Turma 2A · Licenciado sob MIT
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
