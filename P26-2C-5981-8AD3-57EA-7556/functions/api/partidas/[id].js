@@ -1,6 +1,7 @@
 import { lerSessao, segredoSessao } from "../../../src/sessao.js";
 import {
   erro,
+  comBanco,
   FROTA,
   validarFrota,
   classificarTiro,
@@ -36,7 +37,7 @@ const paraCelulasPublicas = (json) =>
  * Estado da partida para o cliente. A frota do oponente NUNCA é enviada
  * (só após a partida ser finalizada); o jogador vê apenas o resultado dos próprios tiros.
  */
-export async function onRequestGet({ request, env, params }) {
+async function getHandler({ request, env, params }) {
   if (!env.DB) return erro("Banco D1 não vinculado ao projeto.", 503);
   const p = await carregarPartida(env.DB, params.id);
   if (!p) return erro("Partida não encontrada.", 404);
@@ -80,7 +81,7 @@ export async function onRequestGet({ request, env, params }) {
 }
 
 /** Ações da partida: entrar, posicionar, atirar. Toda regra é validada aqui, no servidor. */
-export async function onRequestPost({ request, env, params }) {
+async function postHandler({ request, env, params }) {
   if (!env.DB) return erro("Banco D1 não vinculado ao projeto.", 503);
   const sessao = await lerSessao(request, segredoSessao(env));
   if (!sessao) return erro("Faça login com Discord OAuth2 para jogar.", 401);
@@ -201,3 +202,6 @@ async function registrarPlacar(DB, userId, nome, avatar, campo) {
        updated_at = CURRENT_TIMESTAMP`
   ).bind(userId, nome, avatar || null, vit, der).run();
 }
+
+export const onRequestGet = comBanco(getHandler);
+export const onRequestPost = comBanco(postHandler);

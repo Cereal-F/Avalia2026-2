@@ -1,8 +1,8 @@
 import { lerSessao, segredoSessao } from "../../../src/sessao.js";
-import { erro } from "../../../src/batalha.js";
+import { erro, comBanco } from "../../../src/batalha.js";
 
 /** Lista partidas abertas e as partidas do próprio jogador. */
-export async function onRequestGet({ request, env }) {
+async function getHandler({ request, env }) {
   if (!env.DB) return erro("Banco D1 não vinculado ao projeto.", 503);
   const sessao = await lerSessao(request, segredoSessao(env));
   const uid = sessao?.userId ?? "";
@@ -16,7 +16,7 @@ export async function onRequestGet({ request, env }) {
 }
 
 /** Cria uma nova partida aguardando oponente. */
-export async function onRequestPost({ request, env }) {
+async function postHandler({ request, env }) {
   if (!env.DB) return erro("Banco D1 não vinculado ao projeto.", 503);
   const sessao = await lerSessao(request, segredoSessao(env));
   if (!sessao) return erro("Faça login com Discord OAuth2 para criar partidas.", 401);
@@ -31,3 +31,6 @@ export async function onRequestPost({ request, env }) {
   ).bind(sessao.userId, sessao.username, sessao.avatar || null).run();
   return Response.json({ ok: true, id: r.meta.last_row_id }, { status: 201 });
 }
+
+export const onRequestGet = comBanco(getHandler);
+export const onRequestPost = comBanco(postHandler);
