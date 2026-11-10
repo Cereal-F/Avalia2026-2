@@ -9,11 +9,9 @@
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <div>
-        <strong>Projeto #3: Batalha Naval Tático</strong>
-      </div>
+      <div><strong>Projeto #3: Batalha Naval Tático</strong></div>
       <div class="discord-badge" id="discordProfile">
-        <a id="discordLoginLink" href="/api/auth/discord" style="color:inherit;text-decoration:none;">
+        <a id="discordLoginLink" href="/api/auth/discord" class="link-reset">
           <span id="discordUserText">Entrar com Discord OAuth2</span>
         </a>
       </div>
@@ -21,23 +19,55 @@
   </header>
 
   <main>
-    <section class="card">
-      <span class="pill">Projeto Oficial #3</span>
-      <h1>Batalha Naval Tático</h1>
-      <p class="desc">Implemente o clássico jogo de Batalha Naval em duas fases: posicionamento da frota em uma malha 10x10 e combate por coordenadas. O cliente em JavaScript vanilla deve gerenciar a interação de posicionamento horizontal e vertical das embarcações e disparar requisições fetch para o backend na Cloudflare a cada bombardeio realizado. A autenticação via Discord OAuth2 vincula cada jogador às suas partidas ativas no Cloudflare D1. As funções serverless devem validar se as embarcações foram posicionadas dentro dos limites da matriz e processar os disparos ocultando a matriz do oponente, retornando ao cliente apenas se o tiro resultou em "água", "acerto" ou "navio afundado", atualizando o placar geral ao término do confronto.</p>
-
+    <section class="card" id="secaoLobby">
+      <span class="pill">Lobby</span>
+      <h1>Partidas</h1>
+      <p class="desc">Crie uma partida e aguarde um oponente, ou entre em uma partida aberta. Cada jogador posiciona 5 navios (5, 4, 3, 3 e 2 casas) em uma malha 10x10.</p>
       <div class="form-row">
-        <input class="input-text" id="recordInput" type="text" placeholder="Digite um registro para gravar na Cloudflare Function + D1...">
-        <button class="btn-primary" id="sendBtn" type="button">Registrar no Cloudflare D1</button>
+        <button class="btn-primary" id="btnCriar" type="button">Criar partida</button>
+        <button class="btn-secundario" id="btnAtualizarLobby" type="button">Atualizar lista</button>
       </div>
-      <div id="statusMessage" style="font-size:0.88rem;font-weight:700;color:#166534;margin-bottom:0.75rem;"></div>
+      <p class="mensagem" id="mensagemLobby" role="status"></p>
+      <ul class="records-list" id="listaPartidas"></ul>
+    </section>
+
+    <section class="card" id="secaoPartida" hidden>
+      <span class="pill" id="pillStatus">Partida</span>
+      <h2 class="titulo-secao" id="tituloPartida">Partida</h2>
+      <p class="desc" id="instrucaoPartida"></p>
+      <p class="mensagem" id="mensagemPartida" role="status"></p>
+
+      <div id="painelPosicionamento" hidden>
+        <div class="form-row">
+          <button class="btn-secundario" id="btnOrientacao" type="button">Orientação: Horizontal</button>
+          <button class="btn-secundario" id="btnLimpar" type="button">Limpar frota</button>
+          <button class="btn-primary" id="btnConfirmar" type="button" disabled>Confirmar frota</button>
+        </div>
+        <p class="desc" id="proximoNavio"></p>
+      </div>
+
+      <div class="tabuleiros">
+        <div>
+          <h3 class="titulo-grade">Minha frota</h3>
+          <div class="grade" id="gradeMinha" role="grid" aria-label="Minha frota"></div>
+        </div>
+        <div>
+          <h3 class="titulo-grade">Radar (oponente)</h3>
+          <div class="grade" id="gradeRadar" role="grid" aria-label="Radar do oponente"></div>
+        </div>
+      </div>
+
+      <p class="legenda">Legenda: cinza = navio · azul = água · laranja = acerto · vermelho = afundado · tracejado roxo = navio do oponente revelado</p>
     </section>
 
     <section class="card">
-      <h2 style="font-size:1.15rem;font-weight:800;margin-bottom:0.85rem;">Registros Persistidos (Cloudflare Pages Functions + D1)</h2>
-      <ul class="records-list" id="recordsList">
-        <li>Carregando status da API serverless...</li>
-      </ul>
+      <h2 class="titulo-secao">Placar geral</h2>
+      <table class="tabela-placar">
+        <thead>
+          <tr><th>#</th><th>Jogador</th><th>Vitórias</th><th>Derrotas</th></tr>
+        </thead>
+        <tbody id="corpoPlacar"></tbody>
+      </table>
     </section>
   </main>
 
