@@ -1,9 +1,8 @@
 import { lerSessao, segredoSessao } from "../../../src/sessao.js";
-import { erro, comBanco } from "../../../src/batalha.js";
+import { erro, comBanco, BOT_ID, frotaAleatoria } from "../../../src/batalha.js";
 
 /** Lista partidas abertas e as partidas do próprio jogador. */
 async function getHandler({ request, env }) {
-  if (!env.DB) return erro("Banco D1 não vinculado ao projeto.", 503);
   const sessao = await lerSessao(request, segredoSessao(env));
   const uid = sessao?.userId ?? "";
   const { results } = await env.DB.prepare(
@@ -15,11 +14,27 @@ async function getHandler({ request, env }) {
   return Response.json({ ok: true, partidas: results });
 }
 
-/** Cria uma nova partida aguardando oponente. */
+/**
+ * Cria partida. Corpo opcional: { modo: "humano" | "bot" }.
+ * - humano: fica "aguardando" até outro jogador entrar.
+ * - bot: começa em "posicionando", com a frota do bot já sorteada no servidor.
+ */
 async function postHandler({ request, env }) {
-  if (!env.DB) return erro("Banco D1 não vinculado ao projeto.", 503);
   const sessao = await lerSessao(request, segredoSessao(env));
   if (!sessao) return erro("Faça login com Discord OAuth2 para criar partidas.", 401);
+  const corpo = await request.json().catch(() => ({}));
+
+  if (corpo?.modo === "bot") {
+    const r = await env.DB.prepare(
+      `INSERT INTO partidas (status, jogador1_id, jogador1_nome, jogador1_avatar, jogador2_id, jogador2_nome)
+       VALUES ('posicionando', ?, ?, ?, ?, 'Bot')`
+    ).bind(sessao.userId, sessao.username, sessao.avatar || null, BOT_ID).run();
+    const id = r.meta.last_row_id;
+    await env.DB.prepare(
+      "INSERT INTO tabuleiros (partida_id, jogador_id, navios_json, confirmado) VALUES (?, ?, ?, 1)"
+    ).bind(id, BOT_ID, JSON.stringify(frotaAleatoria())).run();
+    return Response.json({ ok: true, id, modo: "bot" }, { status: 201 });
+  }
 
   const ativa = await env.DB.prepare(
     "SELECT id FROM partidas WHERE jogador1_id = ? AND status = 'aguardando' LIMIT 1"
@@ -29,7 +44,7 @@ async function postHandler({ request, env }) {
   const r = await env.DB.prepare(
     "INSERT INTO partidas (status, jogador1_id, jogador1_nome, jogador1_avatar) VALUES ('aguardando', ?, ?, ?)"
   ).bind(sessao.userId, sessao.username, sessao.avatar || null).run();
-  return Response.json({ ok: true, id: r.meta.last_row_id }, { status: 201 });
+  return Response.json({ ok: true, id: r.meta.last_row_id, modo: "humano" }, { status: 201 });
 }
 
 export const onRequestGet = comBanco(getHandler);

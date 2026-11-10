@@ -3,12 +3,14 @@ import {
   erro,
   comBanco,
   FROTA,
+  BOT_ID,
   validarFrota,
   classificarTiro,
   todosAfundados,
   validarCoordenada,
   chave,
   coordenadas,
+  escolherAlvoBot,
 } from "../../../src/batalha.js";
 
 /** Papel do usuário na partida: 1 (criador), 2 (oponente) ou 0 (espectador/anônimo). */
@@ -38,7 +40,6 @@ const paraCelulasPublicas = (json) =>
  * (só após a partida ser finalizada); o jogador vê apenas o resultado dos próprios tiros.
  */
 async function getHandler({ request, env, params }) {
-  if (!env.DB) return erro("Banco D1 não vinculado ao projeto.", 503);
   const p = await carregarPartida(env.DB, params.id);
   if (!p) return erro("Partida não encontrada.", 404);
 
@@ -82,7 +83,6 @@ async function getHandler({ request, env, params }) {
 
 /** Ações da partida: entrar, posicionar, atirar. Toda regra é validada aqui, no servidor. */
 async function postHandler({ request, env, params }) {
-  if (!env.DB) return erro("Banco D1 não vinculado ao projeto.", 503);
   const sessao = await lerSessao(request, segredoSessao(env));
   if (!sessao) return erro("Faça login com Discord OAuth2 para jogar.", 401);
 
@@ -175,20 +175,60 @@ async function atirar(DB, p, papel, sessao, { linha, coluna }) {
   ).bind(p.id, sessao.userId, linha, coluna, resultado).run();
 
   if (venceu) {
-    const fim = await DB.prepare(
-      "UPDATE partidas SET status = 'finalizada', vencedor_id = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'em_andamento'"
-    ).bind(sessao.userId, p.id).run();
-    if (fim.meta.changes) {
-      const perdedor = papel === 1
-        ? { id: p.jogador2_id, nome: p.jogador2_nome, avatar: p.jogador2_avatar }
-        : { id: p.jogador1_id, nome: p.jogador1_nome, avatar: p.jogador1_avatar };
-      await registrarPlacar(DB, sessao.userId, sessao.username, sessao.avatar, "vitorias");
-      await registrarPlacar(DB, perdedor.id, perdedor.nome, perdedor.avatar, "derrotas");
-    }
+    await finalizarPartida(DB, p, sessao.userId);
+    return Response.json({ ok: true, resultado, linha, coluna, venceu: true, jogadaBot: null });
   }
 
-  // Não revela a frota do oponente: apenas o resultado do tiro.
-  return Response.json({ ok: true, resultado, linha, coluna, venceu });
+  // Partida contra o bot: o bot responde na mesma requisição. A frota do jogador nunca sai do servidor.
+  const jogadaBot = p.jogador2_id === BOT_ID ? await jogarBot(DB, p) : null;
+  return Response.json({ ok: true, resultado, linha, coluna, venceu: false, jogadaBot });
+}
+
+/** Jogada do bot: escolhe o alvo, aplica a regra e devolve o resultado (sem revelar a frota). */
+async function jogarBot(DB, p) {
+  const { results: tirosBot } = await DB.prepare(
+    "SELECT linha, coluna, resultado FROM tiros WHERE partida_id = ? AND atirador_id = ?"
+  ).bind(p.id, BOT_ID).all();
+  const tab = await DB.prepare(
+    "SELECT navios_json FROM tabuleiros WHERE partida_id = ? AND jogador_id = ?"
+  ).bind(p.id, p.jogador1_id).first();
+  if (!tab) return null;
+
+  const navios = JSON.parse(tab.navios_json);
+  const tiradas = new Set(tirosBot.map((t) => chave(t.linha, t.coluna)));
+  const alvo = escolherAlvoBot(tiradas, tirosBot);
+  const resultado = classificarTiro(navios, alvo, tiradas);
+  tiradas.add(alvo);
+  const venceu = todosAfundados(navios, tiradas);
+  const { linha, coluna } = coordenadas(alvo);
+
+  const troca = await DB.prepare(
+    "UPDATE partidas SET vez_de = ? WHERE id = ? AND vez_de = ? AND status = 'em_andamento'"
+  ).bind(venceu ? null : p.jogador1_id, p.id, BOT_ID).run();
+  if (!troca.meta.changes) return null;
+
+  await DB.prepare(
+    "INSERT INTO tiros (partida_id, atirador_id, linha, coluna, resultado) VALUES (?, ?, ?, ?, ?)"
+  ).bind(p.id, BOT_ID, linha, coluna, resultado).run();
+
+  if (venceu) await finalizarPartida(DB, p, BOT_ID);
+  return { linha, coluna, resultado };
+}
+
+/** Finaliza a partida e atualiza o placar apenas dos jogadores humanos. */
+async function finalizarPartida(DB, p, vencedorId) {
+  const fim = await DB.prepare(
+    "UPDATE partidas SET status = 'finalizada', vencedor_id = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'em_andamento'"
+  ).bind(vencedorId, p.id).run();
+  if (!fim.meta.changes) return;
+
+  const humanos = [
+    { id: p.jogador1_id, nome: p.jogador1_nome, avatar: p.jogador1_avatar },
+    { id: p.jogador2_id, nome: p.jogador2_nome, avatar: p.jogador2_avatar },
+  ].filter((j) => j.id && j.id !== BOT_ID);
+  for (const j of humanos) {
+    await registrarPlacar(DB, j.id, j.nome, j.avatar, j.id === vencedorId ? "vitorias" : "derrotas");
+  }
 }
 
 async function registrarPlacar(DB, userId, nome, avatar, campo) {

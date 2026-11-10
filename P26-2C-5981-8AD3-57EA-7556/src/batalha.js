@@ -136,3 +136,64 @@ export function comBanco(handler) {
     }
   };
 }
+
+/* ---------- Bot ---------- */
+export const BOT_ID = "bot";
+
+/** Gera uma frota aleatória válida para o bot (navios em linha reta, sem sobreposição, dentro da malha). */
+export function frotaAleatoria() {
+  for (let tentativa = 0; tentativa < 1000; tentativa++) {
+    const ocupadas = new Set();
+    const navios = [];
+    let ok = true;
+    for (const tamanho of FROTA) {
+      let colocado = false;
+      for (let t = 0; t < 200 && !colocado; t++) {
+        const orientacao = Math.random() < 0.5 ? "H" : "V";
+        const linha = Math.floor(Math.random() * TAMANHO);
+        const coluna = Math.floor(Math.random() * TAMANHO);
+        const celulas = [];
+        let valido = true;
+        for (let i = 0; i < tamanho; i++) {
+          const l = orientacao === "V" ? linha + i : linha;
+          const c = orientacao === "H" ? coluna + i : coluna;
+          if (l >= TAMANHO || c >= TAMANHO || ocupadas.has(chave(l, c))) {
+            valido = false;
+            break;
+          }
+          celulas.push(chave(l, c));
+        }
+        if (valido) {
+          celulas.forEach((k) => ocupadas.add(k));
+          navios.push({ tamanho, celulas });
+          colocado = true;
+        }
+      }
+      if (!colocado) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) return navios;
+  }
+  throw new Error("Não foi possível gerar a frota do bot.");
+}
+
+/** Próximo tiro do bot: casas vizinhas de acertos ainda não atirados; senão, uma casa livre ao acaso. */
+export function escolherAlvoBot(tiradas, historico) {
+  const candidatos = new Set();
+  for (const t of historico) {
+    if (t.resultado !== "acerto") continue;
+    for (const [dl, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const l = t.linha + dl;
+      const c = t.coluna + dc;
+      if (inteiroEntre(l, 0, TAMANHO - 1) && inteiroEntre(c, 0, TAMANHO - 1) && !tiradas.has(chave(l, c))) {
+        candidatos.add(chave(l, c));
+      }
+    }
+  }
+  const lista = candidatos.size
+    ? [...candidatos]
+    : Array.from({ length: TAMANHO * TAMANHO }, (_, k) => k).filter((k) => !tiradas.has(k));
+  return lista[Math.floor(Math.random() * lista.length)];
+}

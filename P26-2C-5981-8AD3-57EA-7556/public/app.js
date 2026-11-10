@@ -109,11 +109,11 @@ async function carregarLobby() {
   }
 }
 
-async function criarPartida() {
+async function criarPartida(modo = "humano") {
   if (!app.usuario) return mensagem("mensagemLobby", "Faça login com Discord para criar partidas.", true);
   try {
-    const d = await api("/api/partidas", { method: "POST" });
-    mensagem("mensagemLobby", "Partida criada. Aguardando um oponente.");
+    const d = await api("/api/partidas", { method: "POST", corpo: { modo } });
+    mensagem("mensagemLobby", modo === "bot" ? "Partida contra o bot criada. Posicione sua frota." : "Partida criada. Aguardando um oponente.");
     await carregarLobby();
     await abrirPartida(d.id);
   } catch (e) {
@@ -289,7 +289,10 @@ async function atirar(linha, coluna) {
       method: "POST",
       corpo: { acao: "atirar", linha, coluna },
     });
-    mensagem("mensagemPartida", MENSAGENS_TIRO[r.resultado] || "Tiro registrado.");
+    const TEXTO_BOT = { agua: "errou", acerto: "acertou um navio", afundado: "afundou um navio" };
+    let texto = MENSAGENS_TIRO[r.resultado] || "Tiro registrado.";
+    if (r.jogadaBot) texto += " Bot: " + TEXTO_BOT[r.jogadaBot.resultado] + ".";
+    mensagem("mensagemPartida", texto);
   } catch (e) {
     mensagem("mensagemPartida", e.message, true);
   }
@@ -384,7 +387,8 @@ async function carregarPlacar() {
 
 /* ---------- Inicialização ---------- */
 
-$("btnCriar").addEventListener("click", criarPartida);
+$("btnCriar").addEventListener("click", () => criarPartida("humano"));
+$("btnBot").addEventListener("click", () => criarPartida("bot"));
 $("btnAtualizarLobby").addEventListener("click", () =>
   carregarLobby().catch((e) => mensagem("mensagemLobby", e.message, true))
 );
