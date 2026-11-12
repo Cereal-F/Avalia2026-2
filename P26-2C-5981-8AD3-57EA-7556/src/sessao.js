@@ -49,7 +49,9 @@ export async function lerSessao(request, segredo) {
     const chave = await chaveHmac(segredo);
     const valido = await crypto.subtle.verify("HMAC", chave, deBase64Url(assinatura), codificador.encode(corpo));
     if (!valido) return null;
-    return JSON.parse(decodificador.decode(deBase64Url(corpo)));
+    const dados = JSON.parse(decodificador.decode(deBase64Url(corpo)));
+    if (!dados.exp || Date.now() > dados.exp) return null;
+    return dados;
   } catch {
     return null;
   }

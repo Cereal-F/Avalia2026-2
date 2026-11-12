@@ -123,10 +123,12 @@ async function posicionar(DB, p, sessao, navios) {
   const v = validarFrota(navios);
   if (!v.ok) return erro(v.erro, 422);
 
-  await DB.prepare(
+  const gravou = await DB.prepare(
     `INSERT INTO tabuleiros (partida_id, jogador_id, navios_json, confirmado) VALUES (?, ?, ?, 1)
-     ON CONFLICT(partida_id, jogador_id) DO UPDATE SET navios_json = excluded.navios_json, confirmado = 1`
+     ON CONFLICT(partida_id, jogador_id) DO UPDATE SET navios_json = excluded.navios_json, confirmado = 1
+     WHERE tabuleiros.confirmado = 0`
   ).bind(p.id, sessao.userId, JSON.stringify(v.navios)).run();
+  if (!gravou.meta.changes) return erro("Sua frota já foi confirmada.", 409);
 
   const { total } = await DB.prepare(
     "SELECT COUNT(*) AS total FROM tabuleiros WHERE partida_id = ? AND confirmado = 1"

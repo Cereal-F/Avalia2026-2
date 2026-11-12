@@ -14,6 +14,7 @@ const app = {
   posicionamento: [],  // navios colocados nesta fase: {linha, coluna, tamanho, orientacao, celulas}
   orientacao: "H",
   timer: null,
+  seq: 0,
 };
 
 async function api(url, opcoes = {}) {
@@ -111,6 +112,8 @@ async function carregarLobby() {
 
 async function criarPartida(modo = "humano") {
   if (!app.usuario) return mensagem("mensagemLobby", "Faça login com Discord para criar partidas.", true);
+  const botoes = [$("btnCriar"), $("btnBot")];
+  botoes.forEach((b) => (b.disabled = true));
   try {
     const d = await api("/api/partidas", { method: "POST", corpo: { modo } });
     mensagem("mensagemLobby", modo === "bot" ? "Partida contra o bot criada. Posicione sua frota." : "Partida criada. Aguardando um oponente.");
@@ -118,6 +121,8 @@ async function criarPartida(modo = "humano") {
     await abrirPartida(d.id);
   } catch (e) {
     mensagem("mensagemLobby", e.message, true);
+  } finally {
+    botoes.forEach((b) => (b.disabled = false));
   }
 }
 
@@ -134,7 +139,10 @@ async function entrarPartida(id) {
 /* ---------- Partida ---------- */
 
 async function abrirPartida(id) {
-  if (app.partidaId !== id) app.posicionamento = [];
+  if (app.partidaId !== id) {
+    app.posicionamento = [];
+    mensagem("mensagemPartida", "");
+  }
   app.partidaId = id;
   $("secaoPartida").hidden = false;
   await atualizarPartida();
@@ -144,13 +152,21 @@ async function abrirPartida(id) {
 async function atualizarPartida() {
   clearTimeout(app.timer);
   if (!app.partidaId) return;
+  const seq = ++app.seq;
+  let novo;
   try {
-    app.estado = await api(`/api/partidas/${app.partidaId}`);
+    novo = await api(`/api/partidas/${app.partidaId}`);
   } catch (e) {
+    if (seq !== app.seq) return;
     mensagem("mensagemPartida", e.message, true);
+    if (!app.estado || app.estado.partida.status !== "finalizada") agendar(INTERVALO_MS * 2);
     return;
   }
-  renderizarPartida();
+  if (seq !== app.seq) return; // uma atualização mais recente já assumiu o controle
+  if (JSON.stringify(novo) !== JSON.stringify(app.estado)) {
+    app.estado = novo;
+    renderizarPartida();
+  }
 
   const { partida, papel } = app.estado;
   if (partida.status === "finalizada") carregarPlacar().catch(() => {});
@@ -160,7 +176,12 @@ async function atualizarPartida() {
     partida.status === "aguardando" ||
     partida.status === "posicionando" ||
     (partida.status === "em_andamento" && !minhaVez);
-  if (papel && aguardando) app.timer = setTimeout(atualizarPartida, INTERVALO_MS);
+  if (papel && aguardando) agendar(INTERVALO_MS);
+}
+
+function agendar(ms) {
+  clearTimeout(app.timer);
+  app.timer = setTimeout(atualizarPartida, ms);
 }
 
 function renderizarPartida() {
@@ -265,6 +286,7 @@ function atualizarControlesPosicionamento() {
 }
 
 async function confirmarFrota() {
+  $("btnConfirmar").disabled = true;
   try {
     const navios = app.posicionamento.map((n) => ({
       linha: n.linha,
@@ -278,6 +300,7 @@ async function confirmarFrota() {
     await atualizarPartida();
   } catch (e) {
     mensagem("mensagemPartida", e.message, true);
+    $("btnConfirmar").disabled = false;
   }
 }
 

@@ -4,7 +4,7 @@
 - **Estudante:** Pedro Favoreto Alves
 - **Turma:** 2C
 - **Chave Única:** `P26-2C-5981-8AD3-57EA-7556`
-- **URL_CLOUDFLARE:** `https://avalia2026-2-bet.pages.dev/` *(Atualize com a URL pública real do seu deploy na Cloudflare antes de abrir o Pull Request)*
+- **URL_CLOUDFLARE:** `https://avalia2026-2-bet.pages.dev/`
 
 ---
 
@@ -13,6 +13,18 @@
 Implemente o clássico jogo de Batalha Naval em duas fases: posicionamento da frota em uma malha 10x10 e combate por coordenadas. O cliente em JavaScript vanilla deve gerenciar a interação de posicionamento horizontal e vertical das embarcações e disparar requisições fetch para o backend na Cloudflare a cada bombardeio realizado.
 
 A autenticação via Discord OAuth2 vincula cada jogador às suas partidas ativas no Cloudflare D1. As funções serverless devem validar se as embarcações foram posicionadas dentro dos limites da matriz e processar os disparos ocultando a matriz do oponente, retornando ao cliente apenas se o tiro resultou em "água", "acerto" ou "navio afundado", atualizando o placar geral ao término do confronto.
+
+---
+
+## Engenharia de Agentes e Skills
+
+A documentação dos agentes, do harness e das skills está em [`AGENTS.md`](./AGENTS.md). Os arquivos das skills usadas pelos agentes estão em [`skills/`](./skills/). Os testes automatizados estão em [`tests/`](./tests/) e rodam a partir desta pasta:
+
+```bash
+node tests/teste-regras.mjs
+node tests/teste-bot.mjs
+node tests/teste-integracao.mjs
+```
 
 ---
 
@@ -40,7 +52,7 @@ A autenticação via Discord OAuth2 vincula cada jogador às suas partidas ativa
    - Na aba **OAuth2**:
      - Copie o **Client ID** e gere o **Client Secret**.
      - Em **Redirects**, adicione a URL exata do deploy:
-       `https://p26-2c-5981-8ad3-57ea-7556.pages.dev/api/auth/discord/callback`
+       `https://avalia2026-2-bet.pages.dev/api/auth/discord/callback`
    - No painel do seu projeto no Cloudflare Pages:
      - Acesse **Settings** → **Environment variables**.
      - Adicione as variáveis de ambiente:

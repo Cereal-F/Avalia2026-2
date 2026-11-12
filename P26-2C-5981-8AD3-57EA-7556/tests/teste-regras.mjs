@@ -1,0 +1,21 @@
+import assert from "node:assert/strict";
+globalThis.Response = globalThis.Response || class { };
+Response.json = (b, o) => ({ body: b, status: o?.status });
+const { validarFrota, classificarTiro, todosAfundados, chave } = await import("../src/batalha.js");
+const H = (l, c, t) => ({ linha: l, coluna: c, tamanho: t, orientacao: "H" });
+const frotaOk = [H(0,0,5), H(2,0,4), H(4,0,3), H(6,0,3), H(8,0,2)];
+const r = validarFrota(frotaOk); assert.equal(r.ok, true);
+assert.equal(validarFrota(frotaOk.slice(0,4)).ok, false, "faltando navio");
+assert.equal(validarFrota([H(0,7,5), H(2,0,4), H(4,0,3), H(6,0,3), H(8,0,2)]).ok, false, "fora da malha");
+assert.equal(validarFrota([H(0,0,5), H(0,2,4), H(4,0,3), H(6,0,3), H(8,0,2)]).ok, false, "sobreposição");
+assert.equal(validarFrota([H(0,0,5), H(2,0,5), H(4,0,3), H(6,0,3), H(8,0,2)]).ok, false, "composição errada");
+assert.equal(validarFrota([{linha:0,coluna:0,tamanho:5,orientacao:"X"},H(2,0,4),H(4,0,3),H(6,0,3),H(8,0,2)]).ok, false, "orientação inválida");
+const V = validarFrota([{linha:0,coluna:0,tamanho:5,orientacao:"V"},H(1,2,4),H(6,2,3),H(8,2,3),H(9,6,2)]); assert.equal(V.ok, true, "vertical ok");
+const navios = r.navios; const tiradas = new Set();
+const t1 = chave(0,0); assert.equal(classificarTiro(navios, chave(9,9), tiradas), "agua");
+assert.equal(classificarTiro(navios, t1, tiradas), "acerto"); tiradas.add(t1);
+for (let c=1;c<5;c++){ const k=chave(0,c); const res=classificarTiro(navios,k,tiradas); tiradas.add(k); if(c<4) assert.equal(res,"acerto"); else assert.equal(res,"afundado"); }
+assert.equal(todosAfundados(navios, tiradas), false);
+for (const n of navios) n.celulas.forEach(k=>tiradas.add(k));
+assert.equal(todosAfundados(navios, tiradas), true);
+console.log("todos os testes das regras passaram");
